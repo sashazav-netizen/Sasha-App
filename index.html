@@ -1,0 +1,203 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ניהול תקציב | אלכסנדר זבודיסקר</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .selected-cat { border: 3px solid #4f46e5 !important; background-color: #eef2ff !important; }
+        /* מניעת בחירת טקסט בטעות בלחיצה מהירה */
+        * { -webkit-tap-highlight-color: transparent; user-select: none; }
+        input { user-select: auto; }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans pb-32 text-right">
+
+    <div class="bg-white p-6 shadow-sm mb-4 sticky top-0 z-10">
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex gap-2">
+                <button onclick="exportToCSV()" title="ייצוא לאקסל" class="w-10 h-10 flex items-center justify-center bg-slate-50 text-indigo-600 rounded-2xl border border-slate-100 active:scale-90 transition-all">
+                    <i class="fas fa-file-download"></i>
+                </button>
+                <button onclick="clearAllData()" title="איפוס נתונים" class="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-300 rounded-2xl border border-slate-100 active:scale-90 transition-all">
+                    <i class="fas fa-trash-alt text-xs"></i>
+                </button>
+            </div>
+            <h1 class="text-xl font-black text-slate-800">ניהול תקציב 💰</h1>
+        </div>
+        
+        <div class="flex gap-4">
+            <div class="flex-1 bg-green-50 p-4 rounded-2xl text-center border border-green-100">
+                <span class="block text-[10px] font-bold text-green-600 uppercase mb-1">הכנסות</span>
+                <span id="incText" class="font-bold text-xl text-green-700 leading-none">₪ 0</span>
+            </div>
+            <div class="flex-1 bg-red-50 p-4 rounded-2xl text-center border border-red-100">
+                <span class="block text-[10px] font-bold text-red-600 uppercase mb-1">הוצאות</span>
+                <span id="expText" class="font-bold text-xl text-red-700 leading-none">₪ 0</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="list" class="p-4 space-y-3"></div>
+
+    <div class="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent z-40">
+        <button onclick="openModal()" class="w-full max-w-sm mx-auto block bg-indigo-600 text-white py-4 rounded-full font-bold shadow-2xl active:scale-95 transition-transform mb-3 text-lg">
+            + הוספת תנועה
+        </button>
+        <p class="text-center text-[10px] text-slate-400 font-medium tracking-wide">
+            כל הזכויות שמורות לאלכסנדר זבודיסקר 2026
+        </p>
+    </div>
+
+    <div id="formModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-[100] text-right">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+            
+            <div class="flex bg-slate-100 p-1 rounded-xl mb-4">
+                <button id="typeExp" onclick="setMode('expense')" class="flex-1 py-2 rounded-lg bg-white text-red-600 font-bold shadow transition-all">הוצאה</button>
+                <button id="typeInc" onclick="setMode('income')" class="flex-1 py-2 rounded-lg text-slate-500 font-bold transition-all">הכנסה</button>
+            </div>
+
+            <input type="number" id="amt" inputmode="decimal" placeholder="סכום ₪" class="w-full text-4xl font-bold p-3 bg-slate-50 rounded-2xl mb-4 text-center outline-none border-2 border-transparent focus:border-indigo-500">
+            
+            <input type="text" id="desc" placeholder="מה קנית? (תיאור חופשי)" class="w-full p-4 bg-slate-50 rounded-xl mb-4 text-center outline-none border-2 border-transparent focus:border-indigo-500 font-medium text-right" dir="rtl">
+
+            <p class="text-[11px] font-bold text-slate-400 mb-2 pr-1 uppercase">בחר קטגוריה:</p>
+            <div class="grid grid-cols-3 gap-2 mb-6" id="catGrid">
+                <button onclick="setCat(event, 'אוכל', 'fa-utensils')" class="cat-btn p-3 bg-slate-50 rounded-xl flex flex-col items-center border-2 border-transparent">
+                    <i class="fas fa-utensils text-orange-500"></i>
+                    <span class="text-[10px] mt-1 font-bold">אוכל</span>
+                </button>
+                <button onclick="setCat(event, 'קניות', 'fa-shopping-bag')" class="cat-btn p-3 bg-slate-50 rounded-xl flex flex-col items-center border-2 border-transparent">
+                    <i class="fas fa-shopping-bag text-pink-500"></i>
+                    <span class="text-[10px] mt-1 font-bold">קניות</span>
+                </button>
+                <button onclick="setCat(event, 'רכב', 'fa-car')" class="cat-btn p-3 bg-slate-50 rounded-xl flex flex-col items-center border-2 border-transparent">
+                    <i class="fas fa-car text-blue-500"></i>
+                    <span class="text-[10px] mt-1 font-bold">רכב</span>
+                </button>
+                <button onclick="setCat(event, 'בית', 'fa-home')" class="cat-btn p-3 bg-slate-50 rounded-xl flex flex-col items-center border-2 border-transparent">
+                    <i class="fas fa-home text-indigo-500"></i>
+                    <span class="text-[10px] mt-1 font-bold">בית</span>
+                </button>
+                <button onclick="setCat(event, 'פנאי', 'fa-grin-stars')" class="cat-btn p-3 bg-slate-50 rounded-xl flex flex-col items-center border-2 border-transparent">
+                    <i class="fas fa-grin-stars text-yellow-500"></i>
+                    <span class="text-[10px] mt-1 font-bold">פנאי</span>
+                </button>
+                <button onclick="setCat(event, 'אחר', 'fa-ellipsis-h')" class="cat-btn p-3 bg-slate-50 rounded-xl flex flex-col items-center border-2 border-transparent selected-cat">
+                    <i class="fas fa-ellipsis-h text-slate-500"></i>
+                    <span class="text-[10px] mt-1 font-bold">אחר</span>
+                </button>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="save()" class="flex-[2] bg-indigo-600 text-white py-4 rounded-2xl font-bold active:scale-95 shadow-lg shadow-indigo-100 transition-transform">שמור</button>
+                <button onclick="closeModal()" class="flex-1 bg-slate-100 text-slate-500 py-4 rounded-2xl font-bold">ביטול</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let data = JSON.parse(localStorage.getItem('cash_v_final')) || [];
+        let mode = 'expense';
+        let selectedCat = 'אחר';
+        let selectedIcon = 'fa-ellipsis-h';
+
+        function openModal() { 
+            document.getElementById('formModal').style.display = 'flex'; 
+            setTimeout(() => document.getElementById('amt').focus(), 100);
+        }
+        
+        function closeModal() { 
+            document.getElementById('formModal').style.display = 'none'; 
+        }
+
+        function setMode(m) {
+            mode = m;
+            document.getElementById('typeExp').className = m === 'expense' ? 'flex-1 py-2 rounded-lg bg-white text-red-600 font-bold shadow' : 'flex-1 py-2 rounded-lg text-slate-500 font-bold';
+            document.getElementById('typeInc').className = m === 'income' ? 'flex-1 py-2 rounded-lg bg-white text-green-600 font-bold shadow' : 'flex-1 py-2 rounded-lg text-slate-500 font-bold';
+        }
+
+        function setCat(e, name, icon) {
+            selectedCat = name;
+            selectedIcon = icon;
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('selected-cat'));
+            e.currentTarget.classList.add('selected-cat');
+        }
+
+        function save() {
+            const val = parseFloat(document.getElementById('amt').value);
+            const desc = document.getElementById('desc').value.trim() || selectedCat;
+            if(!val || val <= 0) return alert("נא להזין סכום");
+
+            data.push({ id: Date.now(), val, desc, cat: selectedCat, icon: selectedIcon, mode, date: new Date().toLocaleDateString('he-IL', {day:'2-digit', month:'2-digit'}) });
+            localStorage.setItem('cash_v_final', JSON.stringify(data));
+            document.getElementById('amt').value = ''; document.getElementById('desc').value = '';
+            closeModal();
+            render();
+        }
+
+        function del(id) {
+            if(confirm("למחוק את הפעולה?")) {
+                data = data.filter(i => i.id !== id);
+                localStorage.setItem('cash_v_final', JSON.stringify(data));
+                render();
+            }
+        }
+
+        function exportToCSV() {
+            if (data.length === 0) return alert("אין נתונים לייצוא");
+            let csvContent = "\uFEFFתאריך,תיאור,קטגוריה,סוג,סכום\n";
+            data.forEach(i => {
+                csvContent += `${i.date},${i.desc},${i.cat},${i.mode === 'income' ? 'הכנסה' : 'הוצאה'},${i.val}\n`;
+            });
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `תקציב_אלכסנדר_2026.csv`;
+            link.click();
+        }
+
+        function clearAllData() {
+            if(confirm("אלכסנדר, למחוק את כל הנתונים לצמיתות?")) {
+                if(confirm("בטוח ב-100%? מומלץ לייצא קובץ קודם.")) {
+                    data = [];
+                    localStorage.setItem('cash_v_final', JSON.stringify(data));
+                    render();
+                }
+            }
+        }
+
+        function render() {
+            const list = document.getElementById('list');
+            list.innerHTML = '';
+            let ti = 0, te = 0;
+
+            if(data.length === 0) {
+                list.innerHTML = '<div class="text-center text-slate-400 mt-20 font-bold px-10">הרשימה ריקה.<br>לחץ על + כדי להוסיף פעולה ראשונה!</div>';
+            } else {
+                data.slice().reverse().forEach(i => {
+                    if(i.mode === 'income') ti += i.val; else te += i.val;
+                    list.innerHTML += `
+                        <div class="bg-white p-4 rounded-2xl flex justify-between items-center shadow-sm border border-slate-50">
+                            <div class="flex items-center gap-3 text-right">
+                                <div class="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-indigo-500 shrink-0"><i class="fas ${i.icon}"></i></div>
+                                <div>
+                                    <p class="font-bold text-slate-800 leading-tight">${i.desc}</p>
+                                    <div class="flex gap-2 text-[10px] text-slate-400 font-bold">
+                                        <span>${i.date}</span><span>•</span><button onclick="del(${i.id})" class="text-red-300 active:text-red-500">מחק</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="font-black text-lg ${i.mode === 'income' ? 'text-green-500' : 'text-red-500'}">${i.mode === 'income' ? '+' : '-'} ₪${i.val.toLocaleString()}</p>
+                        </div>`;
+                });
+            }
+            document.getElementById('incText').innerText = '₪' + ti.toLocaleString();
+            document.getElementById('expText').innerText = '₪' + te.toLocaleString();
+        }
+        render();
+    </script>
+</body>
+</html>
