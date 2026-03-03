@@ -3,186 +3,237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ניהול תקציב | אלכסנדר זבודיסקר</title>
+    <title>ניהול תקציב | אלכסנדר 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
-        body { background-color: #f8fafc; margin: 0; padding: 0; overflow-x: hidden; }
-        .selected-cat { border: 2px solid #4f46e5 !important; background-color: #eef2ff !important; }
+        body { background-color: #f8fafc; margin: 0; padding: 0; overflow-x: hidden; font-family: system-ui, -apple-system, sans-serif; }
+        .selected-cat { border: 2px solid #10b981 !important; background-color: #f0fdf4 !important; }
         * { -webkit-tap-highlight-color: transparent; }
-        
-        /* תצוגה עליונה דחוסה במיוחד */
-        #header-section { position: sticky; top: 0; z-index: 50; background: white; border-bottom: 1px solid #e2e8f0; padding: 10px 16px; }
-        
-        /* גרף זעיר בצד */
-        #chartContainer { width: 50px; height: 50px; min-height: 50px; flex-shrink: 0; }
-        
+        #header-section { position: sticky; top: 0; z-index: 50; background: white; border-bottom: 1px solid #e2e8f0; padding: 12px 16px; }
+        #chartContainer { width: 45px; height: 45px; flex-shrink: 0; }
         #list { padding-bottom: 120px; padding-top: 10px; }
-        .tab-active { color: #4f46e5; font-weight: 900; border-bottom: 2px solid #4f46e5; }
-
-        .color-אוכל { color: #f97316; background-color: #fff7ed; }
-        .color-קניות { color: #ec4899; background-color: #fdf2f8; }
-        .color-רכב { color: #3b82f6; background-color: #eff6ff; }
-        .color-בית { color: #6366f1; background-color: #eef2ff; }
-        .color-פנאי { color: #eab308; background-color: #fefce8; }
-        .color-אחר { color: #94a3b8; background-color: #f8fafc; }
+        .tab-active { color: #059669; font-weight: 900; border-bottom: 2px solid #059669; }
+        .money-card {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border-radius: 1rem; padding: 15px; color: #065f46; border: 1px solid #a7f3d0; text-align: center;
+        }
+        .goal-bg { background: rgba(0,0,0,0.05); border-radius: 20px; height: 6px; width: 100%; overflow: hidden; margin-top: 8px; }
+        #goal-bar { height: 100%; background: #10b981; transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); width: 0%; }
+        @keyframes pulse { 0% { transform: scale(0.95); opacity: 1; } 70% { transform: scale(1.5); opacity: 0; } 100% { transform: scale(0.95); opacity: 0; } }
+        .backup-alert::after {
+            content: ''; position: absolute; top: -2px; right: -2px; width: 8px; height: 8px;
+            background-color: #ef4444; border-radius: 50%; border: 2px solid white; animation: pulse 2s infinite;
+        }
     </style>
 </head>
-<body class="font-sans text-right text-slate-800">
+<body class="text-right text-slate-800">
 
     <div id="header-section">
-        <div class="flex justify-between items-center mb-2">
-            <div>
-                <h1 class="text-[10px] font-black text-slate-400">היתרה שלך</h1>
-                <div id="balanceText" class="text-xl font-black leading-none">₪ 0</div>
+        <div class="flex justify-between items-center mb-2 px-1">
+            <div class="flex gap-1">
+                <button id="backupBtn" onclick="exportToCSV()" class="text-slate-400 p-2 hover:bg-slate-50 rounded-full relative"><i class="fa-solid fa-file-download text-xs"></i></button>
+                <button onclick="openRecurringModal()" class="text-slate-400 p-2 hover:bg-slate-50 rounded-full"><i class="fa-solid fa-sync-alt text-xs"></i></button>
             </div>
-            <div class="flex gap-2">
-                <button onclick="exportToCSV()" class="text-slate-400 p-1"><i class="fas fa-file-download text-xs"></i></button>
-                <button onclick="clearAllData()" class="text-slate-300 p-1"><i class="fas fa-trash-alt text-[10px]"></i></button>
+            <span class="text-[8px] font-black text-slate-300 uppercase tracking-[0.2em]">ALEXANDER BUDGET</span>
+            <button onclick="confirmAction('למחוק את כל הנתונים לצמיתות?', clearAllData)" class="text-slate-300 p-2 hover:bg-slate-50 rounded-full"><i class="fa-solid fa-trash-can text-[9px]"></i></button>
+        </div>
+
+        <div class="money-card mb-3">
+            <div class="flex items-center justify-between mb-1">
+                <div class="w-8"></div>
+                <div class="flex items-center gap-1.5"><i class="fa-solid fa-coins text-[9px] opacity-40"></i><span class="text-[8px] font-black uppercase tracking-wider opacity-60">יתרה נוכחית</span></div>
+                <button onclick="openGoalModal()" class="text-emerald-600/50 hover:text-emerald-600 transition-colors p-1"><i class="fa-solid fa-bullseye text-xs"></i></button>
+            </div>
+            <div id="balanceText" class="text-2xl font-black tracking-tighter mb-1">₪ 0</div>
+            <div id="goal-section" class="px-2" style="display:none;">
+                <div class="flex justify-between text-[7px] font-bold uppercase opacity-60 mb-1"><span id="goal-percent">0% מהיעד</span><span id="goal-val-text">יעד: ₪0</span></div>
+                <div class="goal-bg"><div id="goal-bar"></div></div>
             </div>
         </div>
 
-        <div class="flex items-center gap-4 bg-slate-50 p-2 rounded-xl">
-            <div id="chartContainer">
-                <canvas id="mainChart"></canvas>
-            </div>
-            
+        <div class="flex items-center gap-4 bg-slate-50 p-2 rounded-xl mb-2">
+            <div id="chartContainer"><canvas id="mainChart"></canvas></div>
             <div class="flex-1 flex gap-3">
-                <div class="flex-1">
-                    <span class="block text-[8px] text-emerald-600 font-bold uppercase">הכנסות</span>
-                    <span id="incText" class="text-xs font-black text-emerald-700">₪ 0</span>
-                </div>
+                <div class="flex-1 text-center"><span class="block text-[7px] text-emerald-600 font-bold uppercase">הכנסות</span><span id="incText" class="text-[11px] font-black text-emerald-700">₪ 0</span></div>
                 <div class="border-l border-slate-200"></div>
-                <div class="flex-1">
-                    <span class="block text-[8px] text-rose-600 font-bold uppercase">הוצאות</span>
-                    <span id="expText" class="text-xs font-black text-rose-700">₪ 0</span>
-                </div>
+                <div class="flex-1 text-center"><span class="block text-[7px] text-rose-600 font-bold uppercase">הוצאות</span><span id="expText" class="text-[11px] font-black text-rose-700">₪ 0</span></div>
             </div>
         </div>
 
-        <div class="flex justify-center gap-4 mt-2 text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
-            <button id="tabExp" onclick="changeChartTab('expense')" class="tab-active">הוצאות %</button>
-            <button id="tabInc" onclick="changeChartTab('income')">הכנסות %</button>
+        <div class="flex justify-center gap-6 text-[8px] font-bold text-slate-400 uppercase tracking-tighter">
+            <button id="tabExp" onclick="changeChartTab('expense')" class="tab-active pb-1">הוצאות %</button>
+            <button id="tabInc" onclick="changeChartTab('income')" class="pb-1">הכנסות %</button>
         </div>
     </div>
 
     <div id="list" class="px-4 space-y-1.5"></div>
 
     <div class="fixed bottom-4 left-4 right-4 z-40">
-        <button onclick="openModal()" class="w-full bg-indigo-600 text-white py-3.5 rounded-2xl font-bold shadow-xl active:scale-95 transition-all">+ תנועה חדשה</button>
+        <button onclick="openModal()" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-plus text-xs"></i><span>תנועה חדשה</span></button>
+    </div>
+
+    <div id="confirmModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-[200]">
+        <div class="bg-white w-full max-w-xs rounded-[2rem] p-6 shadow-2xl text-center">
+            <div class="w-12 h-12 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fa-solid fa-circle-exclamation"></i></div>
+            <p id="confirmText" class="text-sm font-bold text-slate-800 mb-6 leading-relaxed"></p>
+            <div class="flex gap-2"><button id="confirmYes" class="flex-1 bg-rose-500 text-white py-3 rounded-xl font-bold text-xs">מחק</button><button onclick="closeConfirm()" class="flex-1 bg-slate-100 text-slate-500 py-3 rounded-xl font-bold text-xs">ביטול</button></div>
+        </div>
+    </div>
+
+    <div id="recurringModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-[120]">
+        <div class="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl max-h-[80vh] flex flex-col">
+            <h3 class="text-center font-black text-slate-800 mb-4 tracking-tight">תנועות קבועות (חודשי)</h3>
+            <div id="recurringList" class="flex-1 overflow-y-auto space-y-2 mb-4 px-1 text-right" dir="rtl"></div>
+            <button onclick="closeRecurringModal()" class="w-full bg-slate-100 text-slate-500 py-3 rounded-xl font-bold">סגור</button>
+        </div>
+    </div>
+
+    <div id="goalModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-[110]">
+        <div class="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl text-center">
+            <h3 class="font-black text-slate-800 mb-4 tracking-tight">הגדרת יעד חיסכון</h3>
+            <input type="number" id="goalInput" inputmode="decimal" placeholder="₪ סכום היעד" class="w-full text-2xl font-bold p-4 bg-slate-50 rounded-xl mb-6 text-center outline-none border-2 border-transparent focus:border-emerald-500">
+            <div class="flex gap-2"><button onclick="saveGoal()" class="flex-[2] bg-emerald-600 text-white py-3 rounded-xl font-bold">עדכן</button><button onclick="closeGoalModal()" class="flex-1 bg-slate-100 text-slate-500 py-3 rounded-xl font-bold">ביטול</button></div>
+        </div>
     </div>
 
     <div id="formModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-[100]">
-        <div class="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
             <div class="flex bg-slate-100 p-1 rounded-xl mb-4">
                 <button id="typeExp" onclick="setMode('expense')" class="flex-1 py-2 rounded-lg bg-white text-red-600 font-bold shadow">הוצאה</button>
                 <button id="typeInc" onclick="setMode('income')" class="flex-1 py-2 rounded-lg text-slate-500 font-bold">הכנסה</button>
             </div>
-            <input type="number" id="amt" inputmode="decimal" placeholder="סכום ₪" class="w-full text-3xl font-bold p-3 bg-slate-50 rounded-xl mb-4 text-center outline-none border-2 border-transparent focus:border-indigo-500 text-slate-800">
-            <input type="text" id="desc" placeholder="תיאור..." class="w-full p-3 bg-slate-50 rounded-xl mb-4 text-center outline-none border-2 border-transparent focus:border-indigo-500 text-right" dir="rtl">
-            <div class="grid grid-cols-3 gap-2 mb-6">
-                <button onclick="setCat(event, 'אוכל', 'fa-utensils')" class="cat-btn p-2 bg-slate-50 rounded-xl flex flex-col items-center border-2 border-transparent"><i class="fas fa-utensils text-orange-500"></i><span class="text-[9px] mt-1 font-bold">אוכל</span></button>
-                <button onclick="setCat(event, 'קניות', 'fa-shopping-bag')" class="cat-btn p-2 bg-slate-50 rounded-xl flex flex-col items-center border-2 border-transparent"><i class="fas fa-shopping-bag text-pink-500"></i><span class="text-[9px] mt-1 font-bold">קניות</span></button>
-                <button onclick="setCat(event, 'רכב', 'fa-car')" class="cat-btn p-2 bg-slate-50 rounded-xl flex flex-col items-center border-2 border-transparent"><i class="fas fa-car text-blue-500"></i><span class="text-[9px] mt-1 font-bold">רכב</span></button>
-                <button onclick="setCat(event, 'בית', 'fa-home')" class="cat-btn p-2 bg-slate-50 rounded-xl flex flex-col items-center border-2 border-transparent"><i class="fas fa-home text-indigo-500"></i><span class="text-[9px] mt-1 font-bold">בית</span></button>
-                <button onclick="setCat(event, 'פנאי', 'fa-grin-stars')" class="cat-btn p-2 bg-slate-50 rounded-xl flex flex-col items-center border-2 border-transparent"><i class="fas fa-grin-stars text-yellow-500"></i><span class="text-[9px] mt-1 font-bold">פנאי</span></button>
-                <button onclick="setCat(event, 'אחר', 'fa-ellipsis-h')" class="cat-btn p-2 bg-slate-50 rounded-xl flex flex-col items-center border-2 border-transparent selected-cat"><i class="fas fa-ellipsis-h text-slate-500"></i><span class="text-[9px] mt-1 font-bold">אחר</span></button>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="save()" class="flex-[2] bg-indigo-600 text-white py-3 rounded-xl font-bold">שמור</button>
-                <button onclick="closeModal()" class="flex-1 bg-slate-100 text-slate-500 py-3 rounded-xl font-bold">ביטול</button>
-            </div>
+            <input type="number" id="amt" inputmode="decimal" placeholder="סכום ₪" class="w-full text-3xl font-bold p-3 bg-slate-50 rounded-xl mb-2 text-center outline-none border-2 border-transparent focus:border-emerald-500">
+            <input type="text" id="desc" placeholder="תיאור..." class="w-full p-3 bg-slate-50 rounded-xl mb-2 text-center outline-none border-2 border-transparent focus:border-emerald-500 text-right" dir="rtl">
+            <label class="flex items-center justify-center gap-2 mb-4 cursor-pointer p-2 bg-slate-50 rounded-xl border border-dashed border-slate-200"><input type="checkbox" id="isRecurring" class="w-4 h-4 accent-emerald-600"><span class="text-xs font-bold text-slate-500">קבוע בכל חודש?</span></label>
+            <div id="categoriesGrid" class="grid grid-cols-3 gap-2 mb-6"></div>
+            <div class="flex gap-2"><button onclick="save()" class="flex-[2] bg-emerald-600 text-white py-3.5 rounded-xl font-bold">שמור</button><button onclick="closeModal()" class="flex-1 bg-slate-100 text-slate-500 py-3.5 rounded-xl font-bold">ביטול</button></div>
         </div>
     </div>
 
     <script>
         Chart.register(ChartDataLabels);
         let data = JSON.parse(localStorage.getItem('cash_v_final')) || [];
-        let mode = 'expense', selectedCat = 'אחר', selectedIcon = 'fa-ellipsis-h', chartMode = 'expense', chartInstance = null;
-        const catColors = { 'אוכל': '#f97316', 'קניות': '#ec4899', 'רכב': '#3b82f6', 'בית': '#6366f1', 'פנאי': '#eab308', 'אחר': '#94a3b8' };
+        let recurring = JSON.parse(localStorage.getItem('recurring_v1')) || [];
+        let myGoal = parseFloat(localStorage.getItem('user_goal')) || 0;
+        const catSettings = JSON.parse(localStorage.getItem('cat_settings')) || {
+            'אוכל': { color: '#f97316', icon: 'fa-utensils' }, 'קניות': { color: '#ec4899', icon: 'fa-bag-shopping' },
+            'רכב': { color: '#3b82f6', icon: 'fa-car' }, 'בית': { color: '#6366f1', icon: 'fa-house' },
+            'פנאי': { color: '#eab308', icon: 'fa-star' }, 'אחר': { color: '#94a3b8', icon: 'fa-ellipsis' }
+        };
+        let mode = 'expense', selectedCat = 'אחר', chartMode = 'expense', chartInstance = null, pendingAction = null;
 
-        function openModal() { document.getElementById('formModal').style.display = 'flex'; }
-        function closeModal() { document.getElementById('formModal').style.display = 'none'; }
-        function setMode(m) {
-            mode = m;
-            document.getElementById('typeExp').className = m === 'expense' ? 'flex-1 py-2 rounded-lg bg-white text-red-600 font-bold shadow' : 'flex-1 py-2 rounded-lg text-slate-500 font-bold';
-            document.getElementById('typeInc').className = m === 'income' ? 'flex-1 py-2 rounded-lg bg-white text-green-600 font-bold shadow' : 'flex-1 py-2 rounded-lg text-slate-500 font-bold';
-        }
-        function setCat(e, n, i) {
-            selectedCat = n; selectedIcon = i;
-            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('selected-cat'));
-            e.currentTarget.classList.add('selected-cat');
-        }
-        function changeChartTab(m) {
-            chartMode = m;
-            document.getElementById('tabExp').classList.toggle('tab-active', m === 'expense');
-            document.getElementById('tabInc').classList.toggle('tab-active', m === 'income');
-            updateChart();
-        }
-        function updateChart() {
-            const filteredData = data.filter(i => i.mode === chartMode);
-            const categories = {};
-            let total = 0;
-            filteredData.forEach(i => { categories[i.cat] = (categories[i.cat] || 0) + i.val; total += i.val; });
-            const ctx = document.getElementById('mainChart').getContext('2d');
-            if (chartInstance) chartInstance.destroy();
-            const labels = Object.keys(categories);
-            if (labels.length === 0) return;
-            chartInstance = new Chart(ctx, {
-                type: 'doughnut',
-                data: { labels: labels, datasets: [{ data: Object.values(categories), backgroundColor: labels.map(l => catColors[l]), borderWidth: 0 }] },
-                options: {
-                    responsive: true, maintainAspectRatio: false, cutout: '80%',
-                    plugins: { legend: { display: false }, datalabels: { display: false } }
+        function confirmAction(text, action) { document.getElementById('confirmText').innerText = text; document.getElementById('confirmModal').style.display = 'flex'; pendingAction = action; }
+        function closeConfirm() { document.getElementById('confirmModal').style.display = 'none'; pendingAction = null; }
+        document.getElementById('confirmYes').onclick = () => { if(pendingAction) pendingAction(); closeConfirm(); };
+
+        function processRecurring() {
+            const now = new Date(); let added = false;
+            recurring.forEach(item => {
+                const lastAdded = new Date(item.lastAdded);
+                const monthsDiff = (now.getFullYear() - lastAdded.getFullYear()) * 12 + (now.getMonth() - lastAdded.getMonth());
+                if (monthsDiff >= 1) {
+                    for(let i=1; i<=monthsDiff; i++) {
+                        data.push({ id: Date.now() + Math.random(), val: item.val, desc: item.desc + " (קבוע)", cat: item.cat, mode: item.mode, date: new Date(lastAdded.setMonth(lastAdded.getMonth() + 1)).toLocaleDateString('he-IL', {day:'2-digit', month:'2-digit'}) });
+                    }
+                    item.lastAdded = now.getTime(); added = true;
                 }
             });
+            if(added) { localStorage.setItem('cash_v_final', JSON.stringify(data)); localStorage.setItem('recurring_v1', JSON.stringify(recurring)); render(); }
         }
+
+        function openRecurringModal() {
+            const list = document.getElementById('recurringList'); list.innerHTML = recurring.length ? '' : '<p class="text-center text-slate-400 text-xs py-4">אין תנועות קבועות</p>';
+            recurring.forEach((item, idx) => {
+                const cat = catSettings[item.cat] || catSettings['אחר'];
+                list.innerHTML += `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border-r-4 mb-2" style="border-color: ${cat.color}"><div class="flex items-center gap-3"><i class="fa-solid ${cat.icon} text-xs opacity-50"></i><div><p class="font-bold text-[11px]">${item.desc}</p><p class="text-[9px] text-slate-400">₪${item.val.toLocaleString()}</p></div></div><button onclick="confirmAction('להפסיק את התנועה הקבועה?', () => delRecurring(${idx}))" class="text-rose-500 p-2"><i class="fa-solid fa-xmark"></i></button></div>`;
+            });
+            document.getElementById('recurringModal').style.display = 'flex';
+        }
+
+        function delRecurring(idx) { recurring.splice(idx, 1); localStorage.setItem('recurring_v1', JSON.stringify(recurring)); openRecurringModal(); }
+        function closeRecurringModal() { document.getElementById('recurringModal').style.display = 'none'; }
+        function openGoalModal() { document.getElementById('goalInput').value = myGoal || ''; document.getElementById('goalModal').style.display = 'flex'; }
+        function closeGoalModal() { document.getElementById('goalModal').style.display = 'none'; }
+        function saveGoal() { myGoal = parseFloat(document.getElementById('goalInput').value) || 0; localStorage.setItem('user_goal', myGoal); closeGoalModal(); render(); }
+        function openModal() { renderCategoriesGrid(); document.getElementById('formModal').style.display = 'flex'; }
+        function closeModal() { document.getElementById('formModal').style.display = 'none'; }
+
+        function renderCategoriesGrid() {
+            const grid = document.getElementById('categoriesGrid'); grid.innerHTML = '';
+            Object.keys(catSettings).forEach(name => {
+                const cat = catSettings[name];
+                grid.innerHTML += `<button onclick="setCat(event, '${name}')" class="cat-btn w-full p-2 bg-slate-50 rounded-xl flex flex-col items-center border-2 border-transparent ${selectedCat === name ? 'selected-cat' : ''}"><i class="fa-solid ${cat.icon}" style="color: ${cat.color}"></i><span class="text-[9px] mt-1 font-bold">${name}</span></button>`;
+            });
+        }
+
+        function setCat(e, n) { selectedCat = n; document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('selected-cat')); e.currentTarget.classList.add('selected-cat'); }
+        function setMode(m) { mode = m; document.getElementById('typeExp').className = m === 'expense' ? 'flex-1 py-2 rounded-lg bg-white text-red-600 font-bold shadow' : 'flex-1 py-2 rounded-lg text-slate-500 font-bold'; document.getElementById('typeInc').className = m === 'income' ? 'flex-1 py-2 rounded-lg bg-white text-green-600 font-bold shadow' : 'flex-1 py-2 rounded-lg text-slate-500 font-bold'; }
+        function changeChartTab(m) { chartMode = m; document.getElementById('tabExp').classList.toggle('tab-active', m === 'expense'); document.getElementById('tabInc').classList.toggle('tab-active', m === 'income'); updateChart(); }
+
+        function updateChart() {
+            const filteredData = data.filter(i => i.mode === chartMode);
+            const categories = {}; filteredData.forEach(i => { categories[i.cat] = (categories[i.cat] || 0) + i.val; });
+            const ctx = document.getElementById('mainChart').getContext('2d'); if (chartInstance) chartInstance.destroy();
+            const labels = Object.keys(categories); if (labels.length === 0) return;
+            chartInstance = new Chart(ctx, { type: 'doughnut', data: { labels: labels, datasets: [{ data: Object.values(categories), backgroundColor: labels.map(l => catSettings[l]?.color || '#94a3b8'), borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '80%', plugins: { legend: { display: false }, datalabels: { display: false } } } });
+        }
+
         function save() {
-            const val = parseFloat(document.getElementById('amt').value);
-            if(!val) return;
-            data.push({ id: Date.now(), val, desc: document.getElementById('desc').value.trim() || selectedCat, cat: selectedCat, icon: selectedIcon, mode, date: new Date().toLocaleDateString('he-IL', {day:'2-digit', month:'2-digit'}) });
+            const val = parseFloat(document.getElementById('amt').value); if(!val) return;
+            const desc = document.getElementById('desc').value.trim() || selectedCat;
+            const isRec = document.getElementById('isRecurring').checked;
+            data.push({ id: Date.now(), val, desc, cat: selectedCat, mode, date: new Date().toLocaleDateString('he-IL', {day:'2-digit', month:'2-digit'}) });
+            if(isRec) { recurring.push({ val, desc, cat: selectedCat, mode, lastAdded: Date.now() }); localStorage.setItem('recurring_v1', JSON.stringify(recurring)); }
             localStorage.setItem('cash_v_final', JSON.stringify(data));
-            document.getElementById('amt').value = ''; document.getElementById('desc').value = '';
-            closeModal(); render();
+            document.getElementById('amt').value = ''; document.getElementById('desc').value = ''; document.getElementById('isRecurring').checked = false; closeModal(); render();
         }
-        function del(id) { if(confirm("למחוק?")) { data = data.filter(i => i.id !== id); localStorage.setItem('cash_v_final', JSON.stringify(data)); render(); } }
+
+        function del(id) { data = data.filter(i => i.id !== id); localStorage.setItem('cash_v_final', JSON.stringify(data)); render(); }
 
         function render() {
             const list = document.getElementById('list'); list.innerHTML = '';
             let ti = 0, te = 0;
             [...data].reverse().forEach(i => {
                 if(i.mode === 'income') ti += i.val; else te += i.val;
-                const accentColor = i.mode === 'income' ? '#10b981' : (catColors[i.cat] || '#94a3b8');
-                list.innerHTML += `<div class="bg-white p-2.5 rounded-xl flex justify-between items-center shadow-sm border-r-4" style="border-right-color: ${accentColor}">
-                    <div class="flex items-center gap-3">
-                        <div class="w-7 h-7 rounded-full flex items-center justify-center text-[10px] color-${i.cat}"><i class="fas ${i.icon}"></i></div>
-                        <div>
-                            <p class="font-bold text-slate-800 text-[11px] leading-tight">${i.desc}</p>
-                            <p class="text-[8px] text-slate-400 font-bold">${i.date} • <button onclick="del(${i.id})" class="text-rose-500">מחק</button></p>
-                        </div>
-                    </div>
-                    <p class="font-black text-xs ${i.mode === 'income' ? 'text-emerald-500' : 'text-rose-500'}">₪${i.val.toLocaleString()}</p>
-                </div>`;
+                const catInfo = catSettings[i.cat] || catSettings['אחר']; const accentColor = i.mode === 'income' ? '#10b981' : catInfo.color;
+                list.innerHTML += `<div class="bg-white p-2.5 rounded-xl flex justify-between items-center shadow-sm border-r-4 mb-1.5" style="border-right-color: ${accentColor}"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full flex items-center justify-center text-[11px]" style="background-color: ${accentColor}15; color: ${accentColor}"><i class="fa-solid ${catInfo.icon}"></i></div><div><p class="font-bold text-slate-800 text-[11px] leading-tight">${i.desc}</p><p class="text-[8px] text-slate-400 font-bold">${i.date} • <button onclick="confirmAction('למחוק את התנועה?', () => del(${i.id}))" class="text-rose-500">מחק</button></p></div></div><p class="font-black text-xs ${i.mode === 'income' ? 'text-emerald-500' : 'text-rose-500'}">₪${i.val.toLocaleString()}</p></div>`;
             });
-            const balance = ti - te;
-            document.getElementById('incText').innerText = '₪' + ti.toLocaleString();
-            document.getElementById('expText').innerText = '₪' + te.toLocaleString();
-            const bEl = document.getElementById('balanceText');
-            bEl.innerText = '₪' + balance.toLocaleString();
-            bEl.className = `text-xl font-black ${balance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`;
-            updateChart();
+            list.innerHTML += `<div class="py-10 text-center opacity-30"><p class="text-[8px] font-bold uppercase tracking-widest">Alexander Budget 2026</p></div>`;
+            const balance = ti - te; document.getElementById('incText').innerText = '₪' + ti.toLocaleString(); document.getElementById('expText').innerText = '₪' + te.toLocaleString();
+            const bEl = document.getElementById('balanceText'); bEl.innerText = '₪' + balance.toLocaleString();
+            const card = document.querySelector('.money-card');
+            if (myGoal > 0) {
+                document.getElementById('goal-section').style.display = 'block';
+                const percent = Math.min(Math.max((balance / myGoal) * 100, 0), 100);
+                setTimeout(() => { document.getElementById('goal-bar').style.width = percent + '%'; }, 100);
+                document.getElementById('goal-percent').innerText = Math.floor(percent) + '% מהיעד';
+                document.getElementById('goal-val-text').innerText = 'יעד: ₪' + myGoal.toLocaleString();
+            } else { document.getElementById('goal-section').style.display = 'none'; }
+            if (balance >= 0) { bEl.style.color = '#065f46'; card.style.background = 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)'; card.style.borderColor = '#a7f3d0'; }
+            else { bEl.style.color = '#991b1b'; card.style.background = 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)'; card.style.borderColor = '#fecaca'; }
+            updateChart(); checkBackupStatus();
+        }
+
+        function checkBackupStatus() {
+            const lastBackup = localStorage.getItem('last_backup_date'); const btn = document.getElementById('backupBtn');
+            if (!lastBackup || (Date.now() - parseInt(lastBackup)) / (1000 * 60 * 60 * 24) > 7) btn.classList.add('backup-alert');
+            else btn.classList.remove('backup-alert');
         }
 
         function exportToCSV() {
             let csv = "\uFEFFתאריך,תיאור,קטגוריה,סוג,סכום\n";
             data.forEach(i => csv += `${i.date},${i.desc},${i.cat},${i.mode === 'income' ? 'הכנסה' : 'הוצאה'},${i.val}\n`);
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-            link.download = `תקציב.csv`; link.click();
+            const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+            link.download = `Budget_Backup.csv`; link.click();
+            localStorage.setItem('last_backup_date', Date.now().toString()); checkBackupStatus();
         }
-        function clearAllData() { if(confirm("למחוק הכל?")) { data = []; localStorage.removeItem('cash_v_final'); render(); } }
+
+        function clearAllData() { data = []; recurring = []; localStorage.removeItem('cash_v_final'); localStorage.removeItem('recurring_v1'); render(); }
+        
+        processRecurring();
         render();
     </script>
 </body>
